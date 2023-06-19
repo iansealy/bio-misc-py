@@ -19,8 +19,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install mypy pylama pytest ruff
+          pip install black mypy pylama pytest ruff
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: black
+        run: |
+          black --diff --check .
       - name: mypy
         run: |
           mypy $(git ls-files '*.py')

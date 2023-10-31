@@ -10,6 +10,8 @@ value if all the same), but numerical fields can optionally be merged
 by summing or taking a mean.
 """
 
+from __future__ import annotations
+
 import argparse
 import collections
 import sys

@@ -20,17 +20,17 @@ import typing
 __version__ = "1.0.0"
 
 
-def main(args: argparse.Namespace) -> None:
+def main(arg: argparse.Namespace) -> None:
     """Merge TSV Duplicates.
 
     Wrapper function used when file is run as a script.
     """
     merge(
-        args.file,
-        header=args.header,
-        keys=args.keys,
-        sums=args.sums,
-        means=args.means,
+        arg.file,
+        header=arg.header,
+        keys=arg.keys,
+        sums=arg.sums,
+        means=arg.means,
     )
 
 
@@ -38,9 +38,9 @@ def merge(
     file: typing.TextIO,
     *,
     header: bool,
-    keys: typing.Sequence = (),
-    sums: typing.Sequence = (),
-    means: typing.Sequence = (),
+    keys: typing.Sequence[int] = (),
+    sums: typing.Sequence[int] = (),
+    means: typing.Sequence[int] = (),
 ) -> None:
     """Merge TSV Duplicates."""
     # Print header?
@@ -82,8 +82,8 @@ def merge(
 
 def _group_by_key(
     file: typing.TextIO,
-    keys: typing.Sequence,
-) -> collections.OrderedDict:
+    keys: typing.Sequence[int],
+) -> collections.OrderedDict[str, list[list[str]]]:
     """Group all lines in file by key."""
     data = collections.OrderedDict()
     for line in file:
@@ -96,7 +96,7 @@ def _group_by_key(
     return data
 
 
-def _conv_to_float(data: list, i: int) -> list[float]:
+def _conv_to_float(data: list[list[str]], i: int) -> list[float]:
     """Convert column to floats."""
     try:
         values = [float(fields[i]) for fields in data if len(fields[i]) > 0]

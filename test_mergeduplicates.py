@@ -1,13 +1,15 @@
 """Merge TSV Duplicates."""
 
 import io
+import runpy
+import sys
 
 import pytest
 
 from mergeduplicates import merge
 
 
-def test_merge(capfd: pytest.CaptureFixture) -> None:
+def test_merge(capfd: pytest.CaptureFixture[str]) -> None:
     """Test merging TSV duplicates."""
     input_tsv = """a b 1 2 3 4
 a b 5 6 7 8
@@ -119,3 +121,39 @@ a c 1 2  4
     merge(io.StringIO(input_tsv), header=False, keys=[1, 2])
     captured_tsv = capfd.readouterr().out
     assert captured_tsv == expected_tsv
+
+    # Header kept
+    input_tsv = """A B C D E F
+a b 1 2 3 4
+a b 5 6 7 8
+a c 1 2 3 4
+""".replace(
+        " ",
+        "\t",
+    )
+    expected_tsv = """A B C D E F
+a b,b,c 1,5,1 2,6,2 3,7,3 4,8,4
+""".replace(
+        " ",
+        "\t",
+    )
+    merge(io.StringIO(input_tsv), header=True)
+    captured_tsv = capfd.readouterr().out
+    assert captured_tsv == expected_tsv
+
+
+def test_script() -> None:
+    """Test running script."""
+    args = [
+        ["mergeduplicates.py"],
+        ["mergeduplicates.py", "-h"],
+        ["mergeduplicates.py", "-k", "1", "-s", "1"],
+        ["mergeduplicates.py", "-k", "1", "-m", "1"],
+        ["mergeduplicates.py", "-k", "1", "-s", "2", "-m", "2"],
+    ]
+    for argv in args:
+        sys.argv = argv
+        with pytest.raises(SystemExit):
+            runpy.run_module("mergeduplicates", run_name="__main__")
+    sys.argv = ["mergeduplicates.py", "-k", "1", "mergeduplicates.py"]
+    runpy.run_module("mergeduplicates", run_name="__main__")

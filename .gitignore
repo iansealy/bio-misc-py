@@ -1,4 +1,7 @@
+.coverage
 .pytest_cache
 .python-version
 .ruff_cache
 __pycache__
+htmlcov
+img-fake-*

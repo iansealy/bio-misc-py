@@ -1,0 +1,5 @@
+--ignore-dir=.mypy_cache
+--ignore-dir=.pytest_cache
+--ignore-dir=.ruff_cache
+--ignore-dir=__pycache__
+--ignore-dir=htmlcov

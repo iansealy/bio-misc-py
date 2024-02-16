@@ -1,6 +1,6 @@
 name: Python
 
-on: [push]
+on: [workflow_dispatch]
 
 jobs:
   build:
@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install setuptools black mypy pylama pytest ruff
+          pip install setuptools black mypy pylama pylint pytest pytest-cov pytest-pylint ruff
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: black
         run: |
@@ -29,6 +29,9 @@ jobs:
       - name: pylama
         run: |
           pylama
+      - name: pylint
+        run: |
+          pylint $(git ls-files '*.py')
       - name: pytest
         run: |
           pytest

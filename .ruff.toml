@@ -1,12 +1,12 @@
-select = ["ALL"]
+lint.select = ["ALL"]
 
 # Ignore incompatible rules
-ignore = [
+lint.ignore = [
     "D203", # one-blank-line-before-class
     "D213", # multi-line-summary-second-line
 ]
 
-[per-file-ignores]
+[lint.per-file-ignores]
 # Allow assert in tests
 "test_*.py" = ["S101"]
 # Allow print in script that writes to STDOUT

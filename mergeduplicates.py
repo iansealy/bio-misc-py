@@ -7,17 +7,21 @@ argument and looks for duplicates specified by a key of one or more
 fields. Duplicates are removed and all other fields are merged. By
 default fields are merged by comma separation (collapsed to a single
 value if all the same), but numerical fields can optionally be merged
-by summing or taking a mean.
+by summing or taking a mean or choosing a maximum or minimum.
 """
 
 from __future__ import annotations
 
 import argparse
 import collections
+import itertools
 import sys
 import typing
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
+
+
+VALID_ACTIONS = ("sum", "mean", "min", "max")
 
 
 def main(arg: argparse.Namespace) -> None:
@@ -31,6 +35,8 @@ def main(arg: argparse.Namespace) -> None:
         keys=arg.keys,
         sums=arg.sums,
         means=arg.means,
+        mins=arg.mins,
+        maxs=arg.maxs,
     )
 
 
@@ -39,8 +45,7 @@ def merge(
     *,
     header: bool,
     keys: typing.Sequence[int] = (),
-    sums: typing.Sequence[int] = (),
-    means: typing.Sequence[int] = (),
+    **actions: typing.Sequence[int],
 ) -> None:
     """Merge TSV Duplicates."""
     # Print header?
@@ -62,13 +67,9 @@ def merge(
                 # If field is a key then just add to output
                 output.append(data[key][0][i])
                 continue
-            if i + 1 in sums or i + 1 in means:
-                # If field needs to summed or averaged then convert to float
-                flt_values = _conv_to_float(data[key], i)
-                flt_val: float = sum(flt_values)
-                if i + 1 in means:
-                    flt_val /= len(flt_values)
-                str_val = str(int(flt_val)) if flt_val.is_integer() else str(flt_val)
+            if i + 1 in list(itertools.chain(*actions.values())):
+                # Apply appropriate action
+                str_val = _apply_action(data[key], i, actions)
             else:
                 # Otherwise field can be merged with comma separators or collapsed
                 str_values = [fields[i] for fields in data[key] if len(fields[i]) > 0]
@@ -96,6 +97,39 @@ def _group_by_key(
     return data
 
 
+def _apply_action(
+    data: list[list[str]],
+    i: int,
+    actions: dict[str, typing.Sequence[int]],
+) -> str:
+    """Apply appropriate action."""
+    sums = actions.get("sums", [])
+    means = actions.get("means", [])
+    mins = actions.get("mins", [])
+    maxs = actions.get("maxs", [])
+    flt_values = _conv_to_float(data, i)
+    flt_val = 0.0
+    if i + 1 in [*sums, *means]:
+        flt_val = sum(flt_values)
+        if i + 1 in means:
+            flt_val /= len(flt_values)
+    elif i + 1 in mins:
+        flt_val = min(flt_values)
+    elif i + 1 in maxs:
+        flt_val = max(flt_values)
+    else:
+        # Unknown action
+        for key in VALID_ACTIONS:
+            if key + "s" in actions:
+                del actions[key + "s"]
+        msg = f"error: unknown action specified: {list(actions.keys())}"
+        raise KeyError(msg)
+
+    # Assert only needed for Python <= 3.11
+    assert isinstance(flt_val, float)  # noqa: S101
+    return str(int(flt_val)) if flt_val.is_integer() else str(flt_val)
+
+
 def _conv_to_float(data: list[list[str]], i: int) -> list[float]:
     """Convert column to floats."""
     try:
@@ -103,10 +137,7 @@ def _conv_to_float(data: list[list[str]], i: int) -> list[float]:
     except ValueError as err:
         field = i + 1
         string = str(err).split(": ")[1]
-        msg = (
-            f"error: field {field} is not numeric ({string})"
-            " so can't be summed or averaged"
-        )
+        msg = f"error: field {field} is not numeric ({string})"
         raise SystemExit(msg) from err
     return values
 
@@ -178,6 +209,26 @@ a   e   f   5   6""",
         help="the field(s) to be merged by taking the mean of the values",
     )
     parser.add_argument(
+        "--min",
+        action="extend",
+        dest="mins",
+        metavar="FLD",
+        nargs=1,
+        type=int,
+        default=[],
+        help="the field(s) to be merged by taking the minimum of the values",
+    )
+    parser.add_argument(
+        "--max",
+        action="extend",
+        dest="maxs",
+        metavar="FLD",
+        nargs=1,
+        type=int,
+        default=[],
+        help="the field(s) to be merged by taking the maximum of the values",
+    )
+    parser.add_argument(
         "--header",
         action="store_true",
         help="tab-delimited file has initial header line to be printed first",
@@ -191,11 +242,16 @@ a   e   f   5   6""",
 
     args = parser.parse_args()
 
-    if len(args.keys) + len(args.sums) != len(set(args.keys + args.sums)):
-        parser.error("fields to be summed cannot also be keys")
-    if len(args.keys) + len(args.means) != len(set(args.keys + args.means)):
-        parser.error("fields to be averaged cannot also be keys")
-    if len(args.sums) + len(args.means) != len(set(args.sums + args.means)):
-        parser.error("fields cannot be both summed and averaged")
+    for name in VALID_ACTIONS:
+        if len(args.keys) + len(getattr(args, name + "s")) != len(
+            set(args.keys + getattr(args, name + "s")),
+        ):
+            parser.error(f"cannot specify 'key' and '{name}' for same field")
+    if len(args.sums) + len(args.means) + len(args.mins) + len(args.maxs) != len(
+        set(args.sums + args.means + args.mins + args.maxs),
+    ):
+        parser.error(
+            "fields cannot have more than one operation applied (sum, mean, etc...)",
+        )
 
     main(args)

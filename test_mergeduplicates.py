@@ -63,10 +63,26 @@ a c 1 2 3 4
     captured_tsv = capfd.readouterr().out
     assert captured_tsv == expected_tsv
 
+    # Minimum of 3rd and 4th and maximum of 5th and 6th
+    expected_tsv = """a b 1 2 7 8
+a c 1 2 3 4
+""".replace(
+        " ",
+        "\t",
+    )
+    merge(io.StringIO(input_tsv), header=False, keys=[1, 2], mins=[3, 4], maxs=[5, 6])
+    captured_tsv = capfd.readouterr().out
+    assert captured_tsv == expected_tsv
+
     # 2nd field can't be summed because is not numeric
-    expected_err = r"field 2 is not numeric \('b'\) so can't be summed or averaged"
+    expected_err = r"field 2 is not numeric \('b'\)"
     with pytest.raises(SystemExit, match=expected_err):
         merge(io.StringIO(input_tsv), header=False, keys=[1], sums=[2])
+
+    # Unknown action specified
+    expected_err = r"unknown action specified: \['unknown'\]"
+    with pytest.raises(KeyError, match=expected_err):
+        merge(io.StringIO(input_tsv), header=False, keys=[1], sums=[3], unknown=[4])
 
     # Sum 3rd and 4th and get mean of 5th and 6th with floats
     input_tsv = """a b 1.5 2 3 4

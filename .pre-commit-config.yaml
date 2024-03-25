@@ -35,6 +35,7 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
+        args: [--strict, --ignore-missing-imports]
   - repo: local
     hooks:
       - id: pylint

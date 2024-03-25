@@ -13,4 +13,4 @@ clean: 	## Clean the repo.
 test:   ## Test the scripts.
 	act -q && black -q --diff --check . && mypy . && pylama && pylint -E --recursive=y . && \
 	pytest -q --cache-clear --no-header --no-summary -c missing --cov --cov-branch --cov-report=html --pylint --pylama \
-	&& ruff . && pre-commit run --all-files
+	&& ruff check . && pre-commit run --all-files

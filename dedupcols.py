@@ -127,8 +127,8 @@ Then "python3 dedupcols.py --noheader -k 1 -c 2 -c 3 -c 4 < in.tsv"
 will produce:
 
 a   1
-b   2,3
-c   3,4
+b   2;3
+c   3;4
 
 And will flag up that the value 3 appears for both b and c.""",
     )
